@@ -55,6 +55,8 @@ void getCameraConfig() {
     if (nvsGetNumber(VNS_CAMERA_KEY_CFS, &cameraFrameSize_t)) {
         cameraFrameSize = cameraFrameSize_t;
     }
+
+    ESP_LOGI("Camera Config", "img quality=%d; pix format=%d; frame size=%d", cameraJpegQuality, cameraPixFormat, cameraFrameSize);
 }
 
 // 相机配置结构体
