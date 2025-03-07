@@ -5,17 +5,23 @@
  */
 
 #pragma once
+
+#include <WebServer.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <esp_http_server.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <esp_task_wdt.h>
-#include <esp_http_server.h>
 #include <esp_camera.h>
-#include <Arduino_JSON.h>
 #include "nvsoper.h"
 #include "deviceInfo.h"
 #include "camera.h"
+
+AsyncWebServer asyncServer(80);  // 异步服务器，处理常规HTTP请求
+httpd_handle_t streamServer = NULL;  // 仅用于流媒体服务
 
 // 常量定义区域
 #define NVS_NET_AP_SSID "apssid"        // AP模式SSID的NVS存储键
@@ -50,10 +56,9 @@ bool switchToAP(String ssid, String password);
 bool switchToSTA(String ssid, String password);
 void getNetWorkConfig();
 bool initNetWork();
-void startStreamServer();
-void stopStreamServer();
+void startServer();
 
-// 修改后的jpg_stream_httpd_handler函数
+
 /**
  * @brief 处理JPEG视频流请求
  * @param req HTTP请求对象
@@ -123,193 +128,149 @@ esp_err_t jpg_stream_httpd_handler(httpd_req_t *req){
     return res;
 }
 
-esp_err_t device_info_handler(httpd_req_t *req){
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    DI::updateInfo();
-    return httpd_resp_send(req, DI::toJsonString().c_str(), HTTPD_RESP_USE_STRLEN);
-}
+// /**
+//  * @brief 设置设备参数
+//  * @param req HTTP请求对象
+//  * @return esp_err_t 执行结果
+//  * @details 可设置WiFi参数和相机参数
+//  */
+// esp_err_t set_Param(httpd_req_t *req){
+//     // 获取查询字符串长度
+//     size_t query_len = httpd_req_get_url_query_len(req);
+//     if(query_len == 0){
+//       return httpd_resp_send(req,  "bad params", HTTPD_RESP_USE_STRLEN);
+//     }
+//     // 动态分配内存存储查询字符串
+//     char *query_str = (char*)malloc(query_len + 1); // +1 用于终止符
+//     // 获取完整查询字符串
+//     if (httpd_req_get_url_query_str(req, query_str, query_len + 1) == ESP_OK) {
+//         ESP_LOGI("SET STA", "Query String: %s", query_str); // 输出：user=admin&action=start
+//     }
+//     char ssid[32] = {0};
+//     // 获取单个参数值
+//     if(httpd_query_key_value(query_str, "ssid", ssid, sizeof(ssid)) == ESP_OK) {
+//       if(strlen(ssid) > 0)
+//        g_sta_ssid = ssid;
+//     }
+//     char password[32] = {0};
+//     if(httpd_query_key_value(query_str, "password", password, sizeof(password)) == ESP_OK) {
+//       if(strlen(password) > 0)
+//        g_sta_password = password;
+//     }
+//     char temp[32] = {0};
+//     if(httpd_query_key_value(query_str, "quality", temp, sizeof(temp)) == ESP_OK) {
+//        cameraJpegQuality = atoi(temp);
+//     }
+//     if(httpd_query_key_value(query_str, "pixformat", temp, sizeof(temp)) == ESP_OK) {
+//        cameraPixFormat = atoi(temp);
+//     }
+//     if(httpd_query_key_value(query_str, "framesize", temp, sizeof(temp)) == ESP_OK) {
+//        cameraFrameSize = atoi(temp);
+//     }
 
-esp_err_t http_send_file(const char *filePath, const char *type, httpd_req_t *req){
-  ESP_LOGD("HTTP", "Send file: %s", filePath);
-  //打开文件
-  FILE *file = fopen(filePath, "r");
-  if(!file){
-    ESP_LOGD("HTTP", "Failed to open file: %s", filePath);
-    httpd_resp_send_404(req);
-    return ESP_FAIL;
-  }
-  //设置http头参数
-  httpd_resp_set_type(req, type);
-  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-  //分块发送文件内容
-  char buffer[512];
-  size_t read_bytes = 0;
-  do{
-    read_bytes = fread(buffer, 1, sizeof(buffer), file);
-    if(read_bytes > 0){
-      if(httpd_resp_send_chunk(req, buffer, read_bytes) != ESP_OK){
-        fclose(file);
-        ESP_LOGD("HTTP", "File send failed!");
-        return ESP_FAIL;
-      }
-    }else{
-      break;
-    }
-  }while(read_bytes == sizeof(buffer));
-  fclose(file);
-  httpd_resp_send_chunk(req, NULL, 0);
-  return ESP_OK;
-}
+//     ESP_LOGI("", "setParam %s %s %d %d %d", g_sta_ssid.c_str(), g_sta_password.c_str(),
+//     cameraJpegQuality, cameraPixFormat, cameraFrameSize);
 
-esp_err_t index_handler(httpd_req_t *req){
-  return http_send_file("/littlefs/main.html", "text/html", req);
-}
+//     nvsSetNumber(VNS_CAMERA_KEY_CJQ, cameraJpegQuality);
+//     nvsSetNumber(VNS_CAMERA_KEY_CPF, cameraPixFormat);
+//     nvsSetNumber(VNS_CAMERA_KEY_CFS, cameraFrameSize);
+//     nvsSetString(NVS_NET_STA_SSID, g_sta_ssid);
+//     nvsSetString(NVS_NET_STA_PASSWORD, g_sta_password);
 
-esp_err_t picnic_handler(httpd_req_t *req){
-  return http_send_file("/littlefs/picnic.css", "text/css", req);
-}
+//     //设置返回类型
+//     httpd_resp_set_type(req, "application/json");
+//     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+//     JSONVar doc;
+//     doc["success"] = true;
+//     doc["note"] = "pleaseRestart";
+//     ESP_LOGI("", "json %s", JSON.stringify(doc).c_str());
+//     httpd_resp_send(req, JSON.stringify(doc).c_str(), HTTPD_RESP_USE_STRLEN);
 
-esp_err_t all_min_handler(httpd_req_t *req){
-  return http_send_file("/littlefs/all.min.css", "text/css", req);
-}
-
-esp_err_t bootstrap_min_handler(httpd_req_t *req){
-  return http_send_file("/littlefs/bootstrap.min.css", "text/css", req);
-} 
-
-esp_err_t bootstrap_bundle_min_handler(httpd_req_t *req){
-  return http_send_file("/littlefs/bootstrap.bundle.min.js", "text/css", req);
-} 
-
-esp_err_t fa_solid_900_handler(httpd_req_t *req){
-  return http_send_file("/littlefs/fa-solid-900.ttf", "application/octet-stream; charset=utf-8", req);
-} 
-
-esp_err_t fa_solid_900_handler1(httpd_req_t *req){
-  return http_send_file("/littlefs/fa-solid-900.woff2", "application/octet-stream; charset=utf-8", req);
-} 
+//     delay(1000);
+//     ESP.restart();
+// }
 
 
-/**
- * @brief 设置设备参数
- * @param req HTTP请求对象
- * @return esp_err_t 执行结果
- * @details 可设置WiFi参数和相机参数
- */
-esp_err_t set_Param(httpd_req_t *req){
-    // 获取查询字符串长度
-    size_t query_len = httpd_req_get_url_query_len(req);
-    if(query_len == 0){
-      return httpd_resp_send(req,  "bad params", HTTPD_RESP_USE_STRLEN);
-    }
-    // 动态分配内存存储查询字符串
-    char *query_str = (char*)malloc(query_len + 1); // +1 用于终止符
-    // 获取完整查询字符串
-    if (httpd_req_get_url_query_str(req, query_str, query_len + 1) == ESP_OK) {
-        ESP_LOGI("SET STA", "Query String: %s", query_str); // 输出：user=admin&action=start
-    }
-    char ssid[32] = {0};
-    // 获取单个参数值
-    if(httpd_query_key_value(query_str, "ssid", ssid, sizeof(ssid)) == ESP_OK) {
-      if(strlen(ssid) > 0)
-       g_sta_ssid = ssid;
-    }
-    char password[32] = {0};
-    if(httpd_query_key_value(query_str, "password", password, sizeof(password)) == ESP_OK) {
-      if(strlen(password) > 0)
-       g_sta_password = password;
-    }
-    char temp[32] = {0};
-    if(httpd_query_key_value(query_str, "quality", temp, sizeof(temp)) == ESP_OK) {
-       cameraJpegQuality = atoi(temp);
-    }
-    if(httpd_query_key_value(query_str, "pixformat", temp, sizeof(temp)) == ESP_OK) {
-       cameraPixFormat = atoi(temp);
-    }
-    if(httpd_query_key_value(query_str, "framesize", temp, sizeof(temp)) == ESP_OK) {
-       cameraFrameSize = atoi(temp);
-    }
+void startServer(void) {
+    // 启动异步服务器
+    // asyncServer.on("/all.min.css", 0b00000001, [](AsyncWebServerRequest *request){
+    //     request->send(LittleFS, "/all.min.css", "text/css");
+    // });
 
-    ESP_LOGI("", "setParam %s %s %d %d %d", g_sta_ssid.c_str(), g_sta_password.c_str(),
-    cameraJpegQuality, cameraPixFormat, cameraFrameSize);
+    // asyncServer.on("/bootstrap.min.css", 0b00000001, [](AsyncWebServerRequest *request){
+    //     request->send(LittleFS, "/bootstrap.min.css", "text/css");
+    // });
 
-    nvsSetNumber(VNS_CAMERA_KEY_CJQ, cameraJpegQuality);
-    nvsSetNumber(VNS_CAMERA_KEY_CPF, cameraPixFormat);
-    nvsSetNumber(VNS_CAMERA_KEY_CFS, cameraFrameSize);
-    nvsSetString(NVS_NET_STA_SSID, g_sta_ssid);
-    nvsSetString(NVS_NET_STA_PASSWORD, g_sta_password);
+    // asyncServer.on("/bootstrap.bundle.min.js", 0b00000001, [](AsyncWebServerRequest *request){
+    //     request->send(LittleFS, "/bootstrap.bundle.min.js", "text/javascript");
+    // });
+    asyncServer.serveStatic("/", LittleFS, "/").setDefaultFile("main.html").setCacheControl("max-age=3600");
 
-    //设置返回类型
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    JSONVar doc;
-    doc["success"] = true;
-    doc["note"] = "pleaseRestart";
-    ESP_LOGI("", "json %s", JSON.stringify(doc).c_str());
-    httpd_resp_send(req, JSON.stringify(doc).c_str(), HTTPD_RESP_USE_STRLEN);
+    asyncServer.on("/webfonts/fa-solid-900.ttf", 0b00000001, [](AsyncWebServerRequest *request){
+        request->send(LittleFS, "/fa-solid-900.ttf", "application/octet-stream");
+    });
 
-    delay(1000);
-    ESP.restart();
-}
+    asyncServer.on("/webfonts/fa-solid-900.woff2", 0b00000001, [](AsyncWebServerRequest *request){
+        request->send(LittleFS, "/fa-solid-900.woff2", "application/octet-stream");
+    });
 
-httpd_handle_t httpd  = NULL;
-httpd_handle_t stream_httpd  = NULL;
+    // asyncServer.on("/", 0b00000001, [](AsyncWebServerRequest *request){
+    //     request->send(LittleFS, "/main.html", "text/html");
+    // });
 
-/**
- * @brief 启动HTTP流媒体服务器
- * @details 配置并启动HTTP服务器，注册各种处理函数
- */
-void startStreamServer(void)
-{
-    // 停止之前的服务器
-    if (httpd) {
-        httpd_stop(httpd);
-        httpd = NULL;
-    }
+    asyncServer.on("/setParam", 0b00000001, [](AsyncWebServerRequest *request){
+        // 获取参数值
+        String ssid = request->getParam("ssid") ? request->getParam("ssid")->value() : "";
+        String password = request->getParam("password") ? request->getParam("password")->value() : "";
+        int quality = request->getParam("quality") ? request->getParam("quality")->value().toInt() : cameraJpegQuality;
+        int pixformat = request->getParam("pixformat") ? request->getParam("pixformat")->value().toInt() : cameraPixFormat;
+        int framesize = request->getParam("framesize") ? request->getParam("framesize")->value().toInt() : cameraFrameSize;
 
-    ESP_LOGI("HTTP", "Starting server...");
-    ESP_LOGI("HTTP", "Free heap: %d", esp_get_free_heap_size());
+        // 更新全局变量
+        if (ssid.length() > 0) g_sta_ssid = ssid;
+        if (password.length() > 0) g_sta_password = password;
+        cameraJpegQuality = quality;
+        cameraPixFormat = pixformat;
+        cameraFrameSize = framesize;
 
-    // 检查 WiFi 连接状态
-    if (WiFi.status() != WL_CONNECTED && !g_ap_enable) {
-        ESP_LOGE("HTTP", "Network not ready");
-        return;
-    }
+        // 保存到NVS
+        nvsSetNumber(VNS_CAMERA_KEY_CJQ, cameraJpegQuality);
+        nvsSetNumber(VNS_CAMERA_KEY_CPF, cameraPixFormat);
+        nvsSetNumber(VNS_CAMERA_KEY_CFS, cameraFrameSize);
+        nvsSetString(NVS_NET_STA_SSID, g_sta_ssid);
+        nvsSetString(NVS_NET_STA_PASSWORD, g_sta_password);
 
-    // 增加内存检查的阈值
-    if (esp_get_free_heap_size() < 102400) { // 增加到 100KB
-        ESP_LOGE("HTTP", "Insufficient memory for servers");
-        return;
-    }
+        // 返回响应
+        JSONVar doc;
+        doc["success"] = true;
+        doc["note"] = "pleaseRestart";
+        request->send(200, "application/json", JSON.stringify(doc));
 
-    // 启动服务器
+        // 重启设备
+        delay(1000);
+        ESP.restart();
+    });
+
+    asyncServer.on("/deviceInfo", HTTP_GET, [](AsyncWebServerRequest *request){
+        DI::updateInfo();
+        request->send(200, "application/json", DI::toJsonString());
+    });
+
+    asyncServer.begin();
+    ESP_LOGI("HTTP", "Async server started on port 80");
+
+    // 启动流媒体服务器
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.server_port = 80;
-    config.max_open_sockets = 4; // 适当增加连接数
-    config.stack_size = 40960;    // 适当增加堆栈大小
+    config.server_port = 81;
+    config.max_open_sockets = 2;  // 只需要处理流媒体连接
+    config.stack_size = 4096;
 
-    ESP_LOGI("HTTP", "Starting server on port 80...");
-    if (httpd_start(&httpd, &config) == ESP_OK)
-    {
-        register_handler(httpd, "/all.min.css", all_min_handler);
-        register_handler(httpd, "/bootstrap.min.css", bootstrap_min_handler);
-        register_handler(httpd, "/bootstrap.bundle.min.js", bootstrap_bundle_min_handler);
-        register_handler(httpd, "/webfonts/fa-solid-900.ttf", fa_solid_900_handler);
-        // register_handler(httpd, "/webfonts/fa-solid-900.woff2", fa_solid_900_handler1);
-        register_handler(httpd, "/", index_handler);
-        register_handler(httpd, "/deviceInfo", device_info_handler);
-        register_handler(httpd, "/setParam", set_Param);
-        register_handler(httpd, "/stream", jpg_stream_httpd_handler); // 添加流服务
-        ESP_LOGI("HTTP", "Server started successfully");
+    if (httpd_start(&streamServer, &config) == ESP_OK) {
+        register_handler(streamServer, "/stream", jpg_stream_httpd_handler);
+        ESP_LOGI("HTTP", "Stream server started on port 81");
+    } else {
+        ESP_LOGE("HTTP", "Failed to start stream server");
     }
-    else {
-        ESP_LOGE("HTTP", "Failed to start server");
-    }
-}
-void stopStreamServer(){
-  httpd_stop(httpd);
-  httpd_stop(stream_httpd);
 }
 
 //////////////////////////////////////////////////////////////////
@@ -383,22 +344,19 @@ void getNetWorkConfig(){
   g_ap_ssid.c_str(), g_ap_password.c_str(), g_sta_ssid.c_str(), g_sta_password.c_str());
 }
 
-/**
- * @brief 初始化网络连接
- * @return bool 初始化是否成功
- * @details 先尝试连接STA模式，失败则切换到AP模式
- */
+// 修改initNetWork函数
 bool initNetWork(){
-  getNetWorkConfig();
 
-  if(!switchToSTA(g_sta_ssid, g_sta_password)){
-    switchToAP(g_ap_ssid, g_ap_password);
-  }
+    getNetWorkConfig();
 
-  startStreamServer();
+    if(!switchToSTA(g_sta_ssid, g_sta_password)){
+        switchToAP(g_ap_ssid, g_ap_password);
+    }
 
-  ESP_LOGI("Network", "enable web server finish.");
-  return true;
+    startServer();
+
+    ESP_LOGI("Network", "Web servers started successfully");
+    return true;
 }
 
 void register_handler(httpd_handle_t server_handle, const char *url, esp_err_t (*handler)(httpd_req_t *r)){
