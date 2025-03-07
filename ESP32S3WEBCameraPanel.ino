@@ -50,7 +50,7 @@ void setup(void) {
     if (!LittleFS.begin(true)) {
         ESP_LOGI("Setup", "LittleFS 初始化失败");
         return;
-    }c:\Users\xctan\template\sketch_jan13a\esp32CameraWebPanel.code-workspace
+    }
 
 #if 1
     // 初始化NVS
