@@ -1,12 +1,3 @@
-<style>
-  .rounded-font {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-  }
-</style>
-
-<div class="rounded-font">
 
 # ESP32-S3 摄像头控制面板 📸
 
@@ -248,4 +239,3 @@ STA 模式连接成功后，设备会通过串口打印其 IP 地址。您可以
     <img src="https://img.shields.io/badge/Built%20with-Arduino-00979D?style=for-the-badge&logo=arduino" alt="Arduino">
   </a>
 </p>
-
