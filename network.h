@@ -182,6 +182,14 @@ esp_err_t bootstrap_bundle_min_handler(httpd_req_t *req){
   return http_send_file("/littlefs/bootstrap.bundle.min.js", "text/css", req);
 } 
 
+esp_err_t fa_solid_900_handler(httpd_req_t *req){
+  return http_send_file("/littlefs/fa-solid-900.ttf", "application/octet-stream; charset=utf-8", req);
+} 
+
+esp_err_t fa_solid_900_handler1(httpd_req_t *req){
+  return http_send_file("/littlefs/fa-solid-900.woff2", "application/octet-stream; charset=utf-8", req);
+} 
+
 
 /**
  * @brief 设置设备参数
@@ -279,7 +287,7 @@ void startStreamServer(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
     config.max_open_sockets = 4; // 适当增加连接数
-    config.stack_size = 4096;    // 适当增加堆栈大小
+    config.stack_size = 40960;    // 适当增加堆栈大小
 
     ESP_LOGI("HTTP", "Starting server on port 80...");
     if (httpd_start(&httpd, &config) == ESP_OK)
@@ -287,6 +295,8 @@ void startStreamServer(void)
         register_handler(httpd, "/all.min.css", all_min_handler);
         register_handler(httpd, "/bootstrap.min.css", bootstrap_min_handler);
         register_handler(httpd, "/bootstrap.bundle.min.js", bootstrap_bundle_min_handler);
+        register_handler(httpd, "/webfonts/fa-solid-900.ttf", fa_solid_900_handler);
+        // register_handler(httpd, "/webfonts/fa-solid-900.woff2", fa_solid_900_handler1);
         register_handler(httpd, "/", index_handler);
         register_handler(httpd, "/deviceInfo", device_info_handler);
         register_handler(httpd, "/setParam", set_Param);
