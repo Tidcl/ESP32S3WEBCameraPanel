@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄像头控制面板</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAAAsTAAALEwEAmpwYAAACpUlEQVR4nO2YzW4SURTHeQGfxncAWwWJLvx8AD+2BVd+lC4KLZguEFjZunFXoImWBFzUKMIAiRghNm3GoQuoxjYz1TJRrHPM/5ZSpIUy07mtiznJP5lcuPf8uOfcc+Zis1lmmWXmmj2QdTv8OTIieyDrtvE0V+DtGWcov5GqKiQpmi5llrfIFRK+YQ1+gNOFyP351aZeOKmtB/FV9WKoEDkWhGMyl/0nLP53bzBun8yfdQUL6sf1X4bgJEWjytcWuR8LTaylC2rUnz/vDAqbR+XQ8/wXzSic1BbWOMoPWM4FcqMdQAy8Wt46lmPJRIEFub4fVn/u1KGkHoHJFMDFikyPkiJdj5TpQlBguhEt03hCZJ+dGqBQU+nWbIWuRT6QJ96gqdfbFBZ+M+EZY/js9lyVfbd3fqz054BMA0x/UujyTInuLaxTrHjQ0Z6ipR3yJht0aabE5pwIYL7WZA4n0kpfsF5NpGU2R1hT+QMirGznuhZ+uaJRTdFoQ6W+kN5Eg+7MVfnmIJIeeYXQ7Tku1jX6/pMoI2r09P3gcF99UqZUVeYH+DAhsp3Yc/piZRdutjxcqMfidRpPivwAUUqml7Y7Dmt4CRAPz6fDNLX0g5UgboDOUIHC+VbH4aZKA8Paq7DQYmvwBRT2AWM6hR/HFbA3xDGdQohv8gwxWponXjcMODaPQ/KZH2CqIrNS0V1mYkMKc66wMjPc27jhQo3eivalF9CTaNDdZ5wLNYTGv9vq5KHhfO1WV+hqddwAu18WvInGwHBHizts5wCHS9PJvm6tqay3IifRIXBCUUYgPOMwIecQVj07Zxpg5+BUZfIlRVY+UOMgPPsWxKEPBFdAiZMsQMnMHfzfrp2Z3msnLskYMPqnkMNkgWXEnxvpAFpmmWW2vvYXakWBIPddZZkAAAAASUVORK5CYII=">
+    <!-- Bootstrap CSS -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.min.js"></script>
+    <link href="/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/all.min.css">
+    <style>
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding-top: 10px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 139, 139, 0.1);
+            margin-bottom: 24px;
+            border: none;
+            transition: transform 0.3s ease;
+            background-color: #ffffff;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        .card-header {
+            background-color: #008B8B;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 18px 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        .status-good {
+            background-color: #008B8B;
+        }
+        .status-warning {
+            background-color: #FFB347;
+        }
+        .status-bad {
+            background-color: #FF6B6B;
+        }
+        .camera-container {
+            width: 100%;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #2F4F4F;
+            box-shadow: 0 5px 15px rgba(0, 139, 139, 0.2);
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .camera-feed {
+            width: 100%;
+            height: auto;
+            display: none; /* 默认隐藏摄像头流 */
+        }
+        .camera-placeholder {
+            text-align: center;
+            color: #e0f5f5;
+            padding: 20px;
+            max-width: 80%;
+        }
+        .camera-placeholder i {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            color: #008B8B;
+            animation: pulse 1.5s infinite alternate;
+        }
+        .camera-placeholder h3 {
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .camera-placeholder p {
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            to {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+        .progress {
+            height: 25px;
+        }
+        .progress-bar {
+            transition: width 0.8s ease;
+            background-color: #008B8B !important;
+        }
+        .settings-form label {
+            font-weight: 500;
+            margin-top: 12px;
+            color: #495057;
+        }
+        .system-info {
+            position: relative;
+            padding: 15px 0;
+            margin: 15px 0;
+            border-bottom: 1px solid rgba(0, 139, 139, 0.1);
+        }
+        .system-info:last-child {
+            border-bottom: none;
+        }
+        .system-info-title {
+            font-size: 0.9rem;
+            color: #2F4F4F;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        .system-info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #008B8B;
+        }
+        .system-info i {
+            font-size: 1.5rem;
+            margin-right: 12px;
+            color: #008B8B;
+            width: 30px;
+            text-align: center;
+        }
+        .navbar {
+            background-color: rgba(230, 255, 255, 0.98) !important;
+            box-shadow: 0 2px 10px rgba(0, 139, 139, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 12px 0;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #008B8B !important;
+            font-size: 1.3rem;
+        }
+        .nav-link {
+            font-weight: 500;
+            padding: 8px 15px !important;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .nav-link:hover {
+            background-color: rgba(0, 139, 139, 0.08);
+            color: #008B8B !important;
+        }
+        .btn-primary {
+            background-color: #008B8B;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 139, 139, 0.3);
+            padding: 8px 20px;
+            font-weight: 500;
+        }
+        .btn-primary:hover {
+            background-color: #006666;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 139, 139, 0.4);
+        }
+        .btn-outline-primary {
+            border-color: #008B8B;
+            color: #008B8B;
+            font-weight: 500;
+            padding: 8px 20px;
+        }
+        .btn-outline-primary:hover {
+            background-color: #008B8B;
+            transform: translateY(-1px);
+        }
+        .btn-outline-secondary {
+            border-color: #6c757d;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 8px 20px;
+            transition: all 0.3s;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+            transform: translateY(-1px);
+        }
+        .info-card {
+            padding: 20px;
+        }
+        .usage-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .device-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .device-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .photo-container {
+            position: relative;
+            margin-bottom: 15px;
+            padding: 5px;
+        }
+        .photo-container img {
+            max-width: 100%;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 139, 139, 0.15);
+            transition: transform 0.2s ease;
+        }
+        .photo-container img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0, 139, 139, 0.2);
+        }
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(220, 53, 69, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+        .delete-btn:hover {
+            background-color: rgba(220, 53, 69, 0.9);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+            margin: 15% auto;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .modal-close:hover {
+            color: #008B8B;
+        }
+        /* 添加新的栅格类 */
+        .col-md-2-4 {
+            flex: 0 0 16.666667%;
+            max-width: 16.666667%;
+            margin-top: 0px;
+            margin-bottom: 0px;
+        }
+        @media (max-width: 768px) {
+            .col-md-2-4 {
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
+            }
+        }
+        @media (max-width: 576px) {
+            .col-md-2-4 {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+        }
+        #clear-photos:hover {
+            background-color: #FF6B6B !important;
+            color: white !important;
+            border-color: #FF6B6B !important;
+        }
+        /* 滑动条样式 */
+        .form-range::-webkit-slider-thumb {
+            background: #008B8B !important;
+        }
+        .form-range::-moz-range-thumb {
+            background: #008B8B !important;
+        }
+        .form-range::-ms-thumb {
+            background: #008B8B !important;
+        }
+        /* 滑动条轨道样式 */
+        .form-range::-webkit-slider-runnable-track {
+            background-color: rgba(0, 139, 139, 0.1);
+        }
+        .form-range::-moz-range-track {
+            background-color: rgba(0, 139, 139, 0.1);
+        }
+        .form-range::-ms-track {
+            background-color: rgba(0, 139, 139, 0.1);
+        }
+        /* 自定义弹窗样式 */
+        #customAlertModal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            align-items: center;
+            justify-content: center;
+        }
+        #customAlertModal .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+            margin: 15% auto;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        #customAlertModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-shrink: 0; /* 防止头部区域被压缩 */
+        }
+        #customAlertModal .modal-body {
+            margin-bottom: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        #customAlertModal .modal-footer {
+            text-align: right;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-microchip me-2"></i>控制面板
+            </a>
+            <!-- 仅在移动设备上显示的汉堡菜单按钮 -->
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <!-- 移动设备上的导航菜单 -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- 使用d-lg-none强制在大屏幕上隐藏整个导航菜单 -->
+                <ul class="navbar-nav ms-auto d-lg-none">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#camera-view"><i class="fas fa-camera me-1"></i>摄像头预览</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#device-info"><i class="fas fa-info-circle me-1"></i>设备信息</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#device-settings"><i class="fas fa-cog me-1"></i>设备设置</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- 左侧面板：设备信息和设置 -->
+            <div class="col-lg-4 order-lg-1 order-2">
+                <!-- 设备信息面板 -->
+                <div class="card" id="device-info">
+                    <div class="card-header">
+                        <i class="fas fa-info-circle me-2"></i>设备信息
+                    </div>
+                    <div class="card-body info-card">
+                        <div class="device-info-grid">
+                            <!-- SDK版本 -->
+                            <div class="system-info">
+                                <div class="system-info-title">
+                                    <i class="fas fa-code-branch"></i>
+                                    <span>SDK版本</span>
+                                </div>
+                                <div class="system-info-value" id="sdk-version">未连接</div>
+                            </div>
+                            
+                            <!-- 运行时间 -->
+                            <div class="system-info">
+                                <div class="system-info-title">
+                                    <i class="fas fa-clock"></i>
+                                    <span>运行时间</span>
+                                </div>
+                                <div class="system-info-value" id="uptime">0天 0小时 0分钟 0秒</div>
+                            </div>
+                        </div>
+
+                        <div class="device-info-grid">
+                            <!-- CPU频率 -->
+                            <div class="system-info">
+                                <div class="system-info-title">
+                                    <i class="fas fa-microchip"></i>
+                                    <span>CPU频率</span>
+                                </div>
+                                <div id="cpu-frequency" class="system-info-value">0 MHz</div>
+                            </div>
+
+                            <!-- 温度信息 -->
+                            <!-- <div class="system-info">
+                                <div class="system-info-title">
+                                    <i class="fas fa-temperature-high"></i>
+                                    <span>芯片温度</span>
+                                </div>
+                                <div class="system-info-value">42°C</div>
+                            </div> -->
+                        </div>
+                        
+                        <!-- WiFi状态 -->
+                        <div class="system-info">
+                            <div class="system-info-title">
+                                <i class="fas fa-wifi"></i>
+                                <span>网络状态</span>
+                            </div>
+                            <div class="system-info-value">
+                                <span class="status-indicator status-bad"></span>
+                                <span id="wifi-status">未连接</span>
+                            </div>
+                            <div class="mt-2 d-flex justify-content-between text-muted">
+                                <small>IP: 0.0.0.0</small>
+                                <small>信号: 0%</small>
+                            </div>
+                        </div>
+                        
+                        <!-- RAM使用率 -->
+                        <div class="system-info">
+                            <div class="system-info-title">
+                                <i class="fas fa-memory"></i>
+                                <span>内存使用</span>
+                            </div>
+                            <!-- 内部RAM -->
+                            <div class="mb-2">
+                                <small class="text-muted">内部RAM</small>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" 
+                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                                <div class="usage-label" id="ram-usage-label">
+                                    <span>0 KB</span>
+                                    <span>0 KB</span>
+                                </div>
+                            </div>
+                            <!-- PSRAM -->
+                            <div>
+                                <small class="text-muted">PSRAM</small>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" 
+                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                                <div class="usage-label" id="psram-usage-label">
+                                    <span>0 KB</span>
+                                    <span>0 KB</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                        <!-- 文件系统 -->
+                        <div class="system-info">
+                            <div class="system-info-title">
+                                <i class="fas fa-hdd"></i>
+                                <span>存储空间</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" 
+                                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            </div>
+                            <div class="usage-label" id="fs-usage-label">
+                                <span>0 KB</span>
+                                <span>0 KB</span>
+                            </div>
+                        </div>
+
+ 
+                    </div>
+                </div>
+
+                <!-- 设备设置面板 -->
+                <div class="card" id="device-settings">
+                    <div class="card-header">
+                        <i class="fas fa-cog me-2"></i>设备设置
+                    </div>
+                    <div class="card-body">
+                        <form class="settings-form">
+                            <div class="row">
+                                <!-- 摄像头设置 -->
+                                <div class="col-md-12">
+                                    <h5 class="mb-3"><i class="fas fa-sliders-h me-2"></i>摄像头设置</h5>
+                                    <div class="mb-3">
+                                        <label for="camera_quality" class="form-label">画面质量 (0-63)</label>
+                                        <input type="range" class="form-range" id="camera_quality" 
+                                            min="0" max="63" value="20" 
+                                            oninput="this.nextElementSibling.value = this.value">
+                                        <output>20</output>
+                                        <small class="form-text text-muted">数值越小质量越好，但数据量也越大</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="camera_pixformat" class="form-label">像素格式</label>
+                                        <select class="form-select" id="camera_pixformat">
+                                            <option value="0">RGB565 (2BPP/RGB565)</option>
+                                            <option value="1">YUV422 (2BPP/YUV422)</option>
+                                            <option value="2">YUV420 (1.5BPP/YUV420)</option>
+                                            <option value="3">GRAYSCALE (1BPP/GRAYSCALE)</option>
+                                            <option value="4" selected>JPEG (JPEG/COMPRESSED)</option>
+                                            <option value="5">RGB888 (3BPP/RGB888)</option>
+                                            <option value="6">RAW (RAW)</option>
+                                            <option value="7">RGB444 (3BP2P/RGB444)</option>
+                                            <option value="8">RGB555 (3BP2P/RGB555)</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="camera_framesize" class="form-label">分辨率</label>
+                                        <select class="form-select" id="camera_framesize">
+                                            <option value="0">96x96 (FRAMESIZE_96X96)</option>
+                                            <option value="1">160x120 (FRAMESIZE_QQVGA)</option>
+                                            <option value="2">176x144 (FRAMESIZE_QCIF)</option>
+                                            <option value="3">240x176 (FRAMESIZE_HQVGA)</option>
+                                            <option value="4">240x240 (FRAMESIZE_240X240)</option>
+                                            <option value="5">320x240 (FRAMESIZE_QVGA)</option>
+                                            <option value="6">400x296 (FRAMESIZE_CIF)</option>
+                                            <option value="7">480x320 (FRAMESIZE_HVGA)</option>
+                                            <option value="8" selected>640x480 (FRAMESIZE_VGA)</option>
+                                            <option value="9">800x600 (FRAMESIZE_SVGA)</option>
+                                            <option value="10">1024x768 (FRAMESIZE_XGA)</option>
+                                            <option value="11">1280x720 (FRAMESIZE_HD)</option>
+                                            <option value="12">1280x1024 (FRAMESIZE_SXGA)</option>
+                                            <option value="13">1600x1200 (FRAMESIZE_UXGA)</option>
+                                            <option value="14">1920x1080 (FRAMESIZE_FHD)</option>
+                                            <option value="15">720x1280 (FRAMESIZE_P_HD)</option>
+                                            <option value="16">864x1536 (FRAMESIZE_P_3MP)</option>
+                                            <option value="17">2048x1536 (FRAMESIZE_QXGA)</option>
+                                            <option value="18">2560x1440 (FRAMESIZE_QHD)</option>
+                                            <option value="19">2560x1600 (FRAMESIZE_WQXGA)</option>
+                                            <option value="20">1080x1920 (FRAMESIZE_P_FHD)</option>
+                                            <option value="21">2560x1920 (FRAMESIZE_QSXGA)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- WiFi设置 -->
+                                <div class="col-md-12">
+                                    <h5 class="mb-3"><i class="fas fa-wifi me-2"></i>WiFi设置</h5>
+                                    <div class="mb-3">
+                                        <label for="sta_ssid" class="form-label">WiFi名称 (SSID)</label>
+                                        <input type="text" class="form-control" id="sta_ssid" value="">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="sta_password" class="form-label">WiFi密码</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="sta_password" value="">
+                                            <button class="btn btn-outline-secondary" type="button" id="toggle-password">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                <button type="button" class="btn btn-outline-secondary me-md-2">
+                                    <i class="fas fa-undo me-2"></i>恢复默认
+                                </button>
+                                <button type="button" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>保存设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧面板：摄像头和照片 -->
+            <div class="col-lg-8 order-lg-2 order-1">
+                <!-- 摄像头预览 -->
+                <div class="card" id="camera-view">
+                    <div class="card-header">
+                        <i class="fas fa-camera me-2"></i>摄像头预览
+                    </div>
+                    <div class="card-body">
+                        <div class="camera-container">
+                            <img src="" alt="Camera Feed" class="camera-feed" id="camera-stream" crossorigin="anonymous" />
+                            <div class="camera-placeholder" id="camera-placeholder">
+                                <i class="fas fa-camera-retro"></i>
+                                <h3>摄像头未启动</h3>
+                                <p>点击下方"打开"按钮启动摄像头</p>
+                                <p>通过ESP32-S3探索世界的每一个精彩瞬间</p>
+                                <p class="mt-3"><small>让智能之眼，捕捉生活之美</small></p>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-3">
+                            <div>
+                                <button class="btn btn-primary me-2" id="toggle-stream">
+                                    <i class="fas fa-power-off me-2"></i>打开
+                                </button>
+                                <button class="btn btn-primary" id="capture-btn">
+                                    <i class="fas fa-camera me-2"></i>拍照
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 照片展示区域 -->
+                <div class="card mt-3" id="photos-view">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-images me-2"></i>照片展示
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm fw-bold" id="clear-photos" style="border-color: #FF6B6B; color: #FF6B6B;">
+                            <i class="fas fa-trash-alt me-1"></i>清除
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="photo-gallery">
+                            <!-- 照片将在这里动态添加 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light text-center text-muted py-3 mt-4">
+        <div class="container">
+            <small>ESP32-S3 Camera Web控制面板 &copy; Tidcl</small>
+        </div>
+    </footer>
+
+    
+    <!-- 添加模态框 -->
+    <div id="imageModal" class="modal">
+        <span class="modal-close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <!-- 自定义弹窗 -->
+    <div id="customAlertModal" class="modal">
+        <div class="modal-content" style="background-color: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: 15% auto;">
+            <div class="modal-header">
+                <h5 id="customAlertTitle" style="margin: 0;">提示</h5>
+                <span class="modal-close" onclick="hideCustomAlert()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="customAlertMessage">这是一条消息</p>
+            </div>
+            <div class="modal-footer" style="text-align: right;">
+                <button class="btn btn-primary" onclick="hideCustomAlert()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.js"></script>
+    <script src="/bootstrap.bundle.min.js"></script>
+    <script>
+        function rssiToPercent(rssi) {
+            const minRssi = -100;  // 信号最弱阈值
+            const maxRssi = -50;   // 信号最强阈值
+            let quality = 2 * (rssi + 100);
+            return Math.min(Math.max(quality, 0), 100);  // 限制在0-100区间
+        }
+
+        // 获取设备信息并更新UI
+        function updateDeviceStatus() {
+            fetch('http://' + window.location.hostname + '/deviceInfo')
+                .then(response => response.json())
+                .then(data => {
+                    // console.log(data);
+                    // 更新SDK版本
+                    document.getElementById('sdk-version').textContent = data.sdk_version;
+
+                    // 更新运行时间
+                    document.getElementById('uptime').textContent = formatUptime(data.uptime);
+
+                    // 更新CPU频率
+                    document.getElementById('cpu-frequency').textContent = `${data.cpuMHz} MHz`;
+
+                    // 更新温度
+                    // document.querySelector('.system-info:nth-child(4) .system-info-value').textContent = `${data.temperature}°C`;
+
+                    // 更新WiFi状态
+                    const wifiStatus = document.getElementById('wifi-status');
+                    const statusIndicator = wifiStatus.previousElementSibling;
+                    if (data.wifiConnected) {
+                        document.getElementById('wifi-status').textContent = `已连接到: ${data.wifiSSID}`;
+                        statusIndicator.className = 'status-indicator status-good';
+                    } else {
+                        document.getElementById('wifi-status').textContent = '未连接';
+                        statusIndicator.className = 'status-indicator status-bad';
+                    }
+                    document.querySelector('.mt-2 small:first-child').textContent = `IP: ${data.wifiIP}`;
+                    document.querySelector('.mt-2 small:last-child').textContent = `信号: ${rssiToPercent(data.wifidBm)}%`;
+
+                    // 更新内部RAM使用率
+                    const ramBar = document.querySelector('.mb-2 .progress-bar');
+                    var ramused = data.totalRAM - data.freeRAM;
+                    const ramPercent = (ramused / data.totalRAM * 100.0).toFixed(1);
+                    ramBar.style.width = ramPercent+"%";
+                    ramBar.textContent = ramPercent+"%";
+                    const ramLabels = document.getElementById('ram-usage-label');
+                    ramLabels.querySelector('span:first-child').textContent = formatBytes(ramused);
+                    ramLabels.querySelector('span:last-child').textContent = formatBytes(data.totalRAM);
+
+                    // 更新PSRAM使用率
+                    var psramused = data.totalPSRAM - data.freePSRAM;
+                    const psramBar = document.querySelector('#device-info > div.card-body.info-card > div:nth-child(4) > div:nth-child(3) > div.progress > div');
+                    const psramPercent = (psramused / data.totalPSRAM * 100.0).toFixed(1);
+                    psramBar.style.width = psramPercent+"%";
+                    psramBar.textContent = psramPercent+"%";
+                    const psramLabels = document.getElementById('psram-usage-label');
+                    psramLabels.querySelector('span:first-child').textContent = formatBytes(psramused);
+                    psramLabels.querySelector('span:last-child').textContent = formatBytes(data.totalPSRAM);
+
+                    // 更新文件系统使用率
+                    const fsBar = document.querySelector('.system-info:last-child .progress-bar');
+                    var fsused = data.totalfs - data.freefs;
+                    const fsPercent = (fsused / data.totalfs * 100.0).toFixed(1);
+                    fsBar.style.width = fsPercent+"%";
+                    fsBar.textContent = fsPercent+"%";
+                    const fsLabels = document.getElementById('fs-usage-label');
+                    fsLabels.querySelector('span:first-child').textContent = formatBytes(fsused);
+                    fsLabels.querySelector('span:last-child').textContent = formatBytes(data.totalfs);
+                })
+        }
+
+        // 格式化运行时间
+        function formatUptime(milliseconds) {
+            const seconds = Math.floor(milliseconds / 1000);
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${days}天 ${hours}小时 ${minutes}分钟 ${secs}秒`;
+        }
+
+        // 格式化字节数
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        // 初始化界面显示
+        function initializeInterface() {
+            // 初始化SDK版本
+            document.getElementById('sdk-version').textContent = '未连接';
+
+            // 初始化运行时间
+            document.getElementById('uptime').textContent = '0天 0小时 0分钟 0秒';
+
+            // 初始化CPU频率
+            document.getElementById('cpu-frequency').textContent = '0 MHz';
+
+            // 初始化WiFi状态
+            document.getElementById('wifi-status').textContent = '未连接';
+            const statusIndicator = document.querySelector('.status-indicator');
+            statusIndicator.className = 'status-indicator status-bad';
+            document.querySelector('.mt-2 small:first-child').textContent = 'IP: 0.0.0.0';
+            document.querySelector('.mt-2 small:last-child').textContent = '信号: 0%';
+
+            // 初始化内部RAM使用率
+            const ramBar = document.querySelector('.mb-2 .progress-bar');
+            ramBar.style.width = '0%';
+            ramBar.textContent = '0%';
+            const ramLabels = document.getElementById('ram-usage-label');
+            ramLabels.querySelector('span:first-child').textContent = '0 KB';
+            ramLabels.querySelector('span:last-child').textContent = '0 KB';
+
+            // 初始化PSRAM使用率
+            const psramBar = document.querySelector('#device-info > div.card-body.info-card > div:nth-child(4) > div:nth-child(3) > div.progress > div');
+            psramBar.style.width = '0%';
+            psramBar.textContent = '0%';
+            const psramLabels = document.getElementById('psram-usage-label');
+            psramLabels.querySelector('span:first-child').textContent = '0 KB';
+            psramLabels.querySelector('span:last-child').textContent = '0 KB';
+
+            // 初始化文件系统使用率
+            const fsBar = document.querySelector('.system-info:last-child .progress-bar');
+            fsBar.style.width = '0%';
+            fsBar.textContent = '0%';
+            const fsLabels = document.getElementById('fs-usage-label');
+            fsLabels.querySelector('span:first-child').textContent = '0 KB';
+            fsLabels.querySelector('span:last-child').textContent = '0 KB';
+
+            // 隐藏摄像头流，显示占位符
+            const streamImg = document.getElementById('camera-stream');
+            const placeholder = document.getElementById('camera-placeholder');
+            streamImg.style.display = 'none';
+            placeholder.style.display = 'block';
+            streamImg.src = '';
+
+            // 重置开关按钮
+            const toggleBtn = document.getElementById('toggle-stream');
+            toggleBtn.innerHTML = '<i class="fas fa-power-off me-2"></i>打开';
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeInterface(); // 首先初始化界面
+            updateDeviceStatus(); // 然后尝试更新设备信息
+        });
+
+        // 密码显示切换
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('sta_password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+        
+        // 开关按钮事件
+        document.getElementById('toggle-stream').addEventListener('click', function() {
+            const btn = this;
+            const icon = btn.querySelector('i');
+            const streamImg = document.getElementById('camera-stream');
+            const placeholder = document.getElementById('camera-placeholder');
+            
+            if (btn.textContent.includes('打开')) {
+                btn.innerHTML = '<i class="fas fa-power-off me-2"></i>关闭';
+                // 显示摄像头流，隐藏占位符
+                streamImg.style.display = 'block';
+                placeholder.style.display = 'none';
+                streamImg.src = `http://` + window.location.hostname + `/stream`;
+            } else {
+                btn.innerHTML = '<i class="fas fa-power-off me-2"></i>打开';
+                // 隐藏摄像头流，显示占位符
+                streamImg.style.display = 'none';
+                placeholder.style.display = 'block';
+                streamImg.src = '';
+            }
+        });
+        
+        // 拍照按钮事件
+        document.getElementById('capture-btn').addEventListener('click', function() {
+            const streamImg = document.getElementById('camera-stream');
+            if (streamImg.style.display !== 'none') {
+                const gallery = document.getElementById('photo-gallery');
+                
+                // 创建canvas来捕获当前帧
+                const canvas = document.createElement('canvas');
+                canvas.width = streamImg.naturalWidth;
+                canvas.height = streamImg.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(streamImg, 0, 0, canvas.width, canvas.height);
+                
+                // 创建照片容器
+                const photoContainer = document.createElement('div');
+                photoContainer.className = 'col-md-2-4 col-sm-4 photo-container';
+                
+                // 创建新的图片元素
+                const newImg = document.createElement('img');
+                newImg.crossOrigin = 'anonymous'; 
+                newImg.src = canvas.toDataURL('image/jpeg'); // 将canvas内容转换为base64图片
+                newImg.className = 'img-fluid mb-2';
+                newImg.onclick = function() {
+                    showModal(this.src);
+                };
+                
+                // 创建删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    if (confirm('确定要删除这张照片吗？')) {
+                        photoContainer.remove();
+                    }
+                };
+                
+                // 组装照片容器
+                photoContainer.appendChild(newImg);
+                photoContainer.appendChild(deleteBtn);
+                
+                // 添加到画廊
+                gallery.insertBefore(photoContainer, gallery.firstChild);
+            }
+        });
+
+        // 模态框功能
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        const closeBtn = document.getElementsByClassName('modal-close')[0];
+
+        function showModal(src) {
+            modal.style.display = 'flex';
+            modalImg.src = src;
+        }
+
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        modal.onclick = function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 保存设置按钮事件
+        document.querySelector('.settings-form .btn-primary').addEventListener('click', function() {
+            // 获取所有设置值
+            const ssid = document.getElementById('sta_ssid').value;
+            const password = document.getElementById('sta_password').value;
+            const quality = document.getElementById('camera_quality').value;
+            const pixformat = document.getElementById('camera_pixformat').value;
+            const framesize = document.getElementById('camera_framesize').value;
+
+            // 构建请求URL
+            const url = `http://` + window.location.hostname + `/setParam?ssid=${encodeURIComponent(ssid)}&password=${encodeURIComponent(password)}&quality=${quality}&pixformat=${pixformat}&framesize=${framesize}`;
+            
+            // 发送请求
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 初始化界面
+                        initializeInterface();
+                        if(window.location.hostname == '192.168.1.1'){
+                            showCustomAlert('成功', '设置成功，如果WIFI设置正确，请通过串口或路由器查看IP访问摄像头网页。');
+                            return;
+                        }
+
+                        showCustomAlert('成功', '设置成功，等待设备重启连接...');
+                        fetch('http://' + window.location.hostname + '/deviceInfo')
+                        .then(response => {
+                            response.json();
+                            hideCustomAlert();
+                        })
+                        .then(data => {
+                            console.log('重连成功');
+                            updateDeviceStatus();
+                        })
+                        .catch(error => {
+                            console.log('重连尝试失败:', error);
+                            if (retryCount >= maxRetries) {
+                                console.log('无法连接到设备，请连接ESP32S3的WIFI节点(esp32s3c)，访问 http://192.168.1.1 重新配置WiFi账号和密码');
+                                showCustomAlert('错误', '无法连接到设备，请连接ESP32S3的WIFI节点(esp32s3c)，访问 http://192.168.1.1 重新配置WiFi账号和密码');
+                            }
+                        });
+                        
+                    } else {
+                        showCustomAlert('错误', '设置失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('请求失败:', error);
+                    showCustomAlert('错误', '请求失败，请检查网络连接');
+                });
+        });
+
+        // 显示自定义弹窗
+        function showCustomAlert(title, message) {
+            const modal = document.getElementById('customAlertModal');
+            const modalTitle = document.getElementById('customAlertTitle');
+            const modalMessage = document.getElementById('customAlertMessage');
+
+            modalTitle.textContent = title || '提示';
+            modalMessage.textContent = message || '这是一条消息';
+            modal.style.display = 'flex'; // 显示弹窗
+        }
+
+        // 隐藏自定义弹窗
+        function hideCustomAlert() {
+            const modal = document.getElementById('customAlertModal');
+            modal.style.display = 'none'; // 隐藏弹窗
+        }
+    </script>
+</body>
+</html>

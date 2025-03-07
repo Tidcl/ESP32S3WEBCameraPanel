@@ -1,0 +1,9 @@
+{
+	"folders": [
+		{
+			"name": "Esp32s3WebCam",
+			"path": "../../PlatformIO/Projects/Esp32s3WebCam"
+		}
+	],
+	"settings": {}
+}
