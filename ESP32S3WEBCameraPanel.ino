@@ -39,12 +39,34 @@ bool writeContentToFile(const char* fileName, const char* content) {
     return false;
 }
 
+
+// 定义喂狗任务
+void feedWatchdogTask(void * parameter) {
+    while(true) {
+        esp_task_wdt_reset(); // 重置看门狗
+        vTaskDelay(pdMS_TO_TICKS(1000)); // 每1秒执行一次
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 初始化程序
 ////////////////////////////////////////////////////////////////////////////////////////////
 void setup(void) {
     // 初始化串口通信
     Serial.begin(115200);
+    
+    // 初始化看门狗
+    esp_task_wdt_init(30, false); // 30秒超时
+
+    // 创建喂狗任务
+    xTaskCreate(
+        feedWatchdogTask,    // 任务函数
+        "FeedWatchdog",      // 任务名称
+        2048,                // 堆栈大小
+        NULL,                // 任务参数
+        1,                   // 任务优先级（较低）
+        NULL                 // 任务句柄
+    );
 
     // 初始化文件系统
     if (!LittleFS.begin(true)) {
@@ -84,5 +106,5 @@ void setup(void) {
  * @brief 主循环
  */
 void loop(void) {
-    delay(1);
+    // delay(1);
 }
