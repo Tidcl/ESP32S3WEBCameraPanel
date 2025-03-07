@@ -375,6 +375,10 @@
             text-align: right;
             flex-shrink: 0;
         }
+        canvas {
+            max-height: 150px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -478,29 +482,13 @@
                                 <i class="fas fa-memory"></i>
                                 <span>内存使用</span>
                             </div>
-                            <!-- 内部RAM -->
                             <div class="mb-2">
                                 <small class="text-muted">内部RAM</small>
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" 
-                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                                </div>
-                                <div class="usage-label" id="ram-usage-label">
-                                    <span>0 KB</span>
-                                    <span>0 KB</span>
-                                </div>
+                                <canvas id="ramChart"></canvas>
                             </div>
-                            <!-- PSRAM -->
                             <div>
                                 <small class="text-muted">PSRAM</small>
-                                <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" 
-                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                                </div>
-                                <div class="usage-label" id="psram-usage-label">
-                                    <span>0 KB</span>
-                                    <span>0 KB</span>
-                                </div>
+                                <canvas id="psramChart"></canvas>
                             </div>
                         </div>
 
@@ -698,15 +686,131 @@
         </div>
     </div>
 
+
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="/chart.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"></script>
     <script src="/bootstrap.bundle.min.js"></script>
     <script>
+        // 确保 Chart.js 已加载
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js 未正确加载，请检查引入路径');
+        } else {
+            console.log('Chart.js 已加载');
+        }
+
         function rssiToPercent(rssi) {
             const minRssi = -100;  // 信号最弱阈值
             const maxRssi = -50;   // 信号最强阈值
             let quality = 2 * (rssi + 100);
             return Math.min(Math.max(quality, 0), 100);  // 限制在0-100区间
+        }
+
+        // 初始化RAM和PSRAM图表
+        let ramChart, psramChart;
+
+        function initializeCharts() {
+            const ramCtx = document.getElementById('ramChart').getContext('2d');
+            const psramCtx = document.getElementById('psramChart').getContext('2d');
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: '使用率 (%)'
+                        }
+                    },
+                    x: {
+                        type: 'linear',
+                        min: 0,
+                        max: 20,
+                        ticks: {
+                            stepSize: 5,
+                            callback: function(value) {
+                                return `${value}s`;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                elements: {
+                    line: {
+                        tension: 0.3,
+                        borderWidth: 2
+                    },
+                    point: {
+                        radius: 0,
+                        hitRadius: 10,
+                        hoverRadius: 4
+                    }
+                },
+                fill: true
+            };
+
+            ramChart = new Chart(ramCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 21}, (_, i) => i),
+                    datasets: [{
+                        label: 'RAM使用率',
+                        data: Array(21).fill(null),
+                        borderColor: '#008B8B',
+                        backgroundColor: 'rgba(0, 139, 139, 0.2)',
+                        fill: true,
+                        spanGaps: true
+                    }]
+                },
+                options: chartOptions
+            });
+
+            psramChart = new Chart(psramCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 21}, (_, i) => i),
+                    datasets: [{
+                        label: 'PSRAM使用率',
+                        data: Array(21).fill(null),
+                        borderColor: '#FF6B6B',
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        fill: true,
+                        spanGaps: true
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+
+        // 更新图表数据
+        function updateCharts(ramPercent, psramPercent) {
+            // 添加新数据
+            ramChart.data.datasets[0].data.push(ramPercent);
+            psramChart.data.datasets[0].data.push(psramPercent);
+
+            // 保持数据长度为20秒
+            if (ramChart.data.datasets[0].data.length >= 21) {
+                ramChart.data.datasets[0].data.shift();
+                psramChart.data.datasets[0].data.shift();
+            }
+
+            // 更新图表
+            ramChart.update('none');
+            psramChart.update('none');
         }
 
         // 获取设备信息并更新UI
@@ -740,25 +844,12 @@
                     document.querySelector('.mt-2 small:first-child').textContent = `IP: ${data.wifiIP}`;
                     document.querySelector('.mt-2 small:last-child').textContent = `信号: ${rssiToPercent(data.wifidBm)}%`;
 
-                    // 更新内部RAM使用率
-                    const ramBar = document.querySelector('.mb-2 .progress-bar');
-                    var ramused = data.totalRAM - data.freeRAM;
-                    const ramPercent = (ramused / data.totalRAM * 100.0).toFixed(1);
-                    ramBar.style.width = ramPercent+"%";
-                    ramBar.textContent = ramPercent+"%";
-                    const ramLabels = document.getElementById('ram-usage-label');
-                    ramLabels.querySelector('span:first-child').textContent = formatBytes(ramused);
-                    ramLabels.querySelector('span:last-child').textContent = formatBytes(data.totalRAM);
+                    // 计算RAM和PSRAM使用率
+                    const ramPercent = ((data.totalRAM - data.freeRAM) / data.totalRAM * 100).toFixed(1);
+                    const psramPercent = ((data.totalPSRAM - data.freePSRAM) / data.totalPSRAM * 100).toFixed(1);
 
-                    // 更新PSRAM使用率
-                    var psramused = data.totalPSRAM - data.freePSRAM;
-                    const psramBar = document.querySelector('#device-info > div.card-body.info-card > div:nth-child(4) > div:nth-child(3) > div.progress > div');
-                    const psramPercent = (psramused / data.totalPSRAM * 100.0).toFixed(1);
-                    psramBar.style.width = psramPercent+"%";
-                    psramBar.textContent = psramPercent+"%";
-                    const psramLabels = document.getElementById('psram-usage-label');
-                    psramLabels.querySelector('span:first-child').textContent = formatBytes(psramused);
-                    psramLabels.querySelector('span:last-child').textContent = formatBytes(data.totalPSRAM);
+                    // 更新图表
+                    updateCharts(ramPercent, psramPercent);
 
                     // 更新文件系统使用率
                     const fsBar = document.querySelector('.system-info:last-child .progress-bar');
@@ -807,22 +898,6 @@
             document.querySelector('.mt-2 small:first-child').textContent = 'IP: 0.0.0.0';
             document.querySelector('.mt-2 small:last-child').textContent = '信号: 0%';
 
-            // 初始化内部RAM使用率
-            const ramBar = document.querySelector('.mb-2 .progress-bar');
-            ramBar.style.width = '0%';
-            ramBar.textContent = '0%';
-            const ramLabels = document.getElementById('ram-usage-label');
-            ramLabels.querySelector('span:first-child').textContent = '0 KB';
-            ramLabels.querySelector('span:last-child').textContent = '0 KB';
-
-            // 初始化PSRAM使用率
-            const psramBar = document.querySelector('#device-info > div.card-body.info-card > div:nth-child(4) > div:nth-child(3) > div.progress > div');
-            psramBar.style.width = '0%';
-            psramBar.textContent = '0%';
-            const psramLabels = document.getElementById('psram-usage-label');
-            psramLabels.querySelector('span:first-child').textContent = '0 KB';
-            psramLabels.querySelector('span:last-child').textContent = '0 KB';
-
             // 初始化文件系统使用率
             const fsBar = document.querySelector('.system-info:last-child .progress-bar');
             fsBar.style.width = '0%';
@@ -845,8 +920,12 @@
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
-            initializeInterface(); // 首先初始化界面
-            updateDeviceStatus(); // 然后尝试更新设备信息
+            initializeInterface();
+            initializeCharts(); // 初始化图表
+            updateDeviceStatus();
+            
+            // 存储定时器以便后续控制
+            deviceStatusTimer = setInterval(updateDeviceStatus, 1000);
         });
 
         // 密码显示切换
@@ -877,7 +956,7 @@
                 // 显示摄像头流，隐藏占位符
                 streamImg.style.display = 'block';
                 placeholder.style.display = 'none';
-                streamImg.src = `http://` + window.location.hostname + `/stream`;
+                streamImg.src = `http://` + window.location.hostname + `:81/stream`;
             } else {
                 btn.innerHTML = '<i class="fas fa-power-off me-2"></i>打开';
                 // 隐藏摄像头流，显示占位符
